@@ -3,6 +3,8 @@
 /kilat-linux-arm64
 /kilat-linux-amd64
 /kilat-linux-armv7
+release-builds/
+build-releases.sh
 
 # Local package manager cache
 .kilat/
