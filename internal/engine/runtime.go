@@ -291,7 +291,7 @@ func (r *Runtime) loadModule(absolutePath string) (goja.Value, error) {
 		moduleName := call.Arguments[0].String()
 
 		if moduleName == "os" || moduleName == "fs" || moduleName == "net" || moduleName == "console" || moduleName == "bun" || moduleName == "crypto" {
-			return r.vm.Get(moduleName)
+			return r.vm.GlobalObject().Get(moduleName)
 		}
 
 		resolved, err := resolvePath(currentDir, moduleName)
@@ -345,7 +345,7 @@ func resolvePath(currentDir, moduleName string) (string, error) {
 	var targetPath string
 	if filepath.IsAbs(moduleName) {
 		targetPath = moduleName
-	} else if (len(moduleName) >= 2 && moduleName[:2] == "./") || (len(moduleName) >= 3 && moduleName[:3] == "../") {
+	} else if strings.HasPrefix(moduleName, "./") || strings.HasPrefix(moduleName, "../") || strings.HasPrefix(moduleName, ".\\") || strings.HasPrefix(moduleName, "..\\") {
 		targetPath = filepath.Join(currentDir, moduleName)
 	} else {
 		var possibleDirs []string
@@ -375,7 +375,11 @@ func resolvePath(currentDir, moduleName string) (string, error) {
 							pathsToTry := []string{
 								mainPath,
 								mainPath + ".js",
+								mainPath + ".cjs",
+								mainPath + ".mjs",
 								filepath.Join(mainPath, "index.js"),
+								filepath.Join(mainPath, "index.cjs"),
+								filepath.Join(mainPath, "index.mjs"),
 							}
 							for _, p := range pathsToTry {
 								if info, err := os.Stat(p); err == nil && !info.IsDir() {
@@ -387,11 +391,19 @@ func resolvePath(currentDir, moduleName string) (string, error) {
 				}
 				p1 := filepath.Join(moduleDir, "index.js")
 				p2 := filepath.Join(moduleDir, moduleName+".js")
+				p3 := filepath.Join(moduleDir, "index.cjs")
+				p4 := filepath.Join(moduleDir, "index.mjs")
 				if _, err := os.Stat(p1); err == nil {
 					return filepath.Abs(p1)
 				}
 				if _, err := os.Stat(p2); err == nil {
 					return filepath.Abs(p2)
+				}
+				if _, err := os.Stat(p3); err == nil {
+					return filepath.Abs(p3)
+				}
+				if _, err := os.Stat(p4); err == nil {
+					return filepath.Abs(p4)
 				}
 			}
 		}
@@ -401,11 +413,15 @@ func resolvePath(currentDir, moduleName string) (string, error) {
 	possiblePaths := []string{
 		targetPath,
 		targetPath + ".js",
+		targetPath + ".cjs",
+		targetPath + ".mjs",
 		targetPath + ".json",
 		targetPath + ".ts",
 		targetPath + ".tsx",
 		targetPath + ".jsx",
 		filepath.Join(targetPath, "index.js"),
+		filepath.Join(targetPath, "index.cjs"),
+		filepath.Join(targetPath, "index.mjs"),
 		filepath.Join(targetPath, "index.ts"),
 	}
 
@@ -429,8 +445,8 @@ func (r *Runtime) SetGlobalRequire(currentDir string) {
 		}
 		moduleName := call.Arguments[0].String()
 
-		if moduleName == "os" || moduleName == "fs" || moduleName == "net" || moduleName == "console" || moduleName == "bun" {
-			return r.vm.Get(moduleName)
+		if moduleName == "os" || moduleName == "fs" || moduleName == "net" || moduleName == "console" || moduleName == "bun" || moduleName == "crypto" {
+			return r.vm.GlobalObject().Get(moduleName)
 		}
 
 		resolved, err := resolvePath(currentDir, moduleName)
