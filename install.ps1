@@ -1,7 +1,7 @@
 # Kilat Installer for Windows PowerShell
 $ErrorActionPreference = "Stop"
 
-$Repo = "cilldev/kilat"
+$Repo = "ihsannyy/kilat"
 $Version = "v3.1.0"
 $BinaryName = "kilat.exe"
 
