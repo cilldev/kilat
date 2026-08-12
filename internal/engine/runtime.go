@@ -123,6 +123,94 @@ func New(opts Options) *Runtime {
 		globalThis.Request = Request;
 		globalThis.Response = Response;
 
+		class URLSearchParams {
+			constructor(init = '') {
+				this._params = {};
+				if (typeof init === 'string') {
+					let str = init.startsWith('?') ? init.slice(1) : init;
+					if (str) {
+						for (const pair of str.split('&')) {
+							if (!pair) continue;
+							const [key, val] = pair.split('=');
+							this._params[decodeURIComponent(key)] = val ? decodeURIComponent(val) : '';
+						}
+					}
+				} else if (typeof init === 'object' && init !== null) {
+					for (const [k, v] of Object.entries(init)) {
+						this._params[k] = String(v);
+					}
+				}
+			}
+			get(name) {
+				return this._params[name] !== undefined ? this._params[name] : null;
+			}
+			set(name, value) {
+				this._params[name] = String(value);
+			}
+			has(name) {
+				return name in this._params;
+			}
+			toString() {
+				const parts = [];
+				for (const [k, v] of Object.entries(this._params)) {
+					parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
+				}
+				return parts.join('&');
+			}
+		}
+
+		class URL {
+			constructor(url, base) {
+				let fullUrl = String(url);
+				if (base && !fullUrl.includes('://')) {
+					let b = base.endsWith('/') ? base.slice(0, -1) : base;
+					let u = fullUrl.startsWith('/') ? fullUrl : '/' + fullUrl;
+					fullUrl = b + u;
+				}
+				this.href = fullUrl;
+				let protoEnd = fullUrl.indexOf('://');
+				if (protoEnd !== -1) {
+					this.protocol = fullUrl.slice(0, protoEnd + 1);
+					let rest = fullUrl.slice(protoEnd + 3);
+					let pathStart = rest.indexOf('/');
+					if (pathStart !== -1) {
+						this.host = rest.slice(0, pathStart);
+						let pathAndQuery = rest.slice(pathStart);
+						let qStart = pathAndQuery.indexOf('?');
+						if (qStart !== -1) {
+							this.pathname = pathAndQuery.slice(0, qStart);
+							this.search = pathAndQuery.slice(qStart);
+						} else {
+							this.pathname = pathAndQuery;
+							this.search = '';
+						}
+					} else {
+						this.host = rest;
+						this.pathname = '/';
+						this.search = '';
+					}
+				} else {
+					let qStart = fullUrl.indexOf('?');
+					if (qStart !== -1) {
+						this.pathname = fullUrl.slice(0, qStart);
+						this.search = fullUrl.slice(qStart);
+					} else {
+						this.pathname = fullUrl;
+						this.search = '';
+					}
+					this.protocol = 'http:';
+					this.host = 'localhost';
+				}
+				this.searchParams = new URLSearchParams(this.search);
+			}
+			toString() {
+				return this.href;
+			}
+		}
+
+		globalThis.URLSearchParams = URLSearchParams;
+		globalThis.URL = URL;
+
 		globalThis.__handleRequest = function(fetchFn, request, callback) {
 			try {
 				const result = fetchFn(request);
